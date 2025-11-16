@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Four</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .setup-screen, .game-screen {
+            display: none;
+        }
+
+        .setup-screen.active, .game-screen.active {
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .game-code-display {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-code {
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            color: #667eea;
+            font-family: monospace;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .status.waiting {
+            background: #fef5e7;
+            color: #f39c12;
+        }
+
+        .status.your-turn {
+            background: #d4edda;
+            color: #28a745;
+        }
+
+        .status.their-turn {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.winner {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .board {
+            background: #0066cc;
+            padding: 15px;
+            border-radius: 15px;
+            display: inline-block;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .board-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+
+        .column:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .cell.red::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            background: #e74c3c;
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .cell.yellow::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            background: #f1c40f;
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .cell {
+                width: 40px;
+                height: 40px;
+            }
+
+            .cell.red::after,
+            .cell.yellow::after {
+                width: 32px;
+                height: 32px;
+            }
+
+            .game-code {
+                font-size: 24px;
+                letter-spacing: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔴 Connect Four 🟡</h1>
+        
+        <div class="setup-screen active">
+            <div class="button-group">
+                <button class="btn-primary" onclick="createGame()">Create Game</button>
+                <button class="btn-secondary" onclick="showJoinInput()">Join Game</button>
+            </div>
+            
+            <div id="joinInput" style="display: none;">
+                <input type="text" id="gameCodeInput" placeholder="Enter Game Code" maxlength="6">
+                <button class="btn-secondary" onclick="joinGame()" style="width: 100%;">Join</button>
+            </div>
+            
+            <div id="error" class="error" style="display: none;"></div>
+        </div>
+
+        <div class="game-screen">
+            <div class="game-code-display">
+                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Game Code</div>
+                <div class="game-code" id="displayGameCode"></div>
+            </div>
+
+            <div class="status" id="status"></div>
+
+            <div class="board-container">
+                <div class="board" id="board"></div>
+            </div>
+
+            <button class="btn-primary" onclick="leaveGame()" style="width: 100%;">Leave Game</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
+    
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDiIiMmrzmCict7ICgK8SSy9nckbxiRlio",
+            authDomain: "simpleonlinemultiplayergames.firebaseapp.com",
+            databaseURL: "https://simpleonlinemultiplayergames-default-rtdb.firebaseio.com",
+            projectId: "simpleonlinemultiplayergames",
+            storageBucket: "simpleonlinemultiplayergames.firebasestorage.app",
+            messagingSenderId: "731333833566",
+            appId: "1:731333833566:web:9a750f1db7b7dfef0c95cf",
+            measurementId: "G-QFN3LQFYS9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentGameCode = null;
+        let playerId = 'player_' + Math.random().toString(36).substr(2, 9);
+        let playerNumber = null;
+        let gameRef = null;
+
+        function generateGameCode() {
+            return Math.random().toString(36).substr(2, 6).toUpperCase();
+        }
+
+        function createGame() {
+            showError('Creating game...');
+            currentGameCode = generateGameCode();
+            playerNumber = 1;
+            
+            const emptyBoard = Array(6).fill(null).map(() => Array(7).fill(0));
+            
+            const timeoutId = setTimeout(() => {
+                showError('Connection timeout - Firebase may be blocked. Try opening in Safari/Chrome browser instead of Claude app.');
+            }, 5000);
+            
+            db.ref('connectFour/' + currentGameCode).set({
+                board: emptyBoard,
+                currentPlayer: 1,
+                player1Id: playerId,
+                player2Id: null,
+                winner: null,
+                createdAt: Date.now()
+            }).then(() => {
+                clearTimeout(timeoutId);
+                showError('Game created! Loading...');
+                startGame();
+            }).catch(error => {
+                clearTimeout(timeoutId);
+                showError('Error: ' + error.message);
+                console.error('Firebase error:', error);
+            });
+        }
+
+        function showJoinInput() {
+            document.getElementById('joinInput').style.display = 'block';
+            document.getElementById('gameCodeInput').focus();
+        }
+
+        function joinGame() {
+            const code = document.getElementById('gameCodeInput').value.toUpperCase().trim();
+            if (code.length !== 6) {
+                showError('Please enter a 6-character game code');
+                return;
+            }
+
+            currentGameCode = code;
+            gameRef = db.ref('connectFour/' + currentGameCode);
+
+            gameRef.once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    showError('Game not found');
+                    return;
+                }
+
+                const game = snapshot.val();
+                if (game.player2Id) {
+                    showError('Game is full');
+                    return;
+                }
+
+                playerNumber = 2;
+                gameRef.update({
+                    player2Id: playerId
+                }).then(() => {
+                    startGame();
+                });
+            });
+        }
+
+        function startGame() {
+            document.querySelector('.setup-screen').classList.remove('active');
+            document.querySelector('.game-screen').classList.add('active');
+            document.getElementById('displayGameCode').textContent = currentGameCode;
+            
+            gameRef = db.ref('connectFour/' + currentGameCode);
+            gameRef.on('value', snapshot => {
+                if (snapshot.exists()) {
+                    updateGame(snapshot.val());
+                }
+            });
+
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            boardEl.style.display = 'flex';
+            boardEl.style.gap = '0';
+
+            for (let col = 0; col < 7; col++) {
+                const columnEl = document.createElement('div');
+                columnEl.className = 'column';
+                columnEl.onclick = () => dropPiece(col);
+
+                for (let row = 0; row < 6; row++) {
+                    const cellEl = document.createElement('div');
+                    cellEl.className = 'cell';
+                    cellEl.id = `cell-${row}-${col}`;
+                    columnEl.appendChild(cellEl);
+                }
+
+                boardEl.appendChild(columnEl);
+            }
+        }
+
+        function updateGame(game) {
+            const board = game.board;
+            
+            for (let row = 0; row < 6; row++) {
+                for (let col = 0; col < 7; col++) {
+                    const cell = document.getElementById(`cell-${row}-${col}`);
+                    cell.className = 'cell';
+                    if (board[row][col] === 1) cell.classList.add('red');
+                    if (board[row][col] === 2) cell.classList.add('yellow');
+                }
+            }
+
+            const statusEl = document.getElementById('status');
+            
+            if (game.winner) {
+                if (game.winner === playerNumber) {
+                    statusEl.textContent = '🎉 You Win!';
+                } else {
+                    statusEl.textContent = '😔 You Lose';
+                }
+                statusEl.className = 'status winner';
+            } else if (!game.player2Id) {
+                statusEl.textContent = '⏳ Waiting for opponent...';
+                statusEl.className = 'status waiting';
+            } else if (game.currentPlayer === playerNumber) {
+                statusEl.textContent = '👉 Your Turn';
+                statusEl.className = 'status your-turn';
+            } else {
+                statusEl.textContent = '⏸️ Opponent\'s Turn';
+                statusEl.className = 'status their-turn';
+            }
+        }
+
+        function dropPiece(col) {
+            gameRef.once('value').then(snapshot => {
+                const game = snapshot.val();
+                
+                if (!game.player2Id) {
+                    showError('Waiting for opponent');
+                    return;
+                }
+
+                if (game.winner) {
+                    showError('Game is over');
+                    return;
+                }
+
+                if (game.currentPlayer !== playerNumber) {
+                    showError('Not your turn');
+                    return;
+                }
+
+                const board = game.board;
+                let row = -1;
+                
+                for (let r = 5; r >= 0; r--) {
+                    if (board[r][col] === 0) {
+                        row = r;
+                        break;
+                    }
+                }
+
+                if (row === -1) {
+                    showError('Column is full');
+                    return;
+                }
+
+                board[row][col] = playerNumber;
+                const winner = checkWinner(board, row, col);
+
+                gameRef.update({
+                    board: board,
+                    currentPlayer: playerNumber === 1 ? 2 : 1,
+                    winner: winner
+                });
+            });
+        }
+
+        function checkWinner(board, row, col) {
+            const player = board[row][col];
+            
+            const directions = [
+                [[0,1], [0,-1]],
+                [[1,0], [-1,0]],
+                [[1,1], [-1,-1]],
+                [[1,-1], [-1,1]]
+            ];
+
+            for (let [dir1, dir2] of directions) {
+                let count = 1;
+                
+                for (let [dr, dc] of [dir1, dir2]) {
+                    let r = row + dr;
+                    let c = col + dc;
+                    while (r >= 0 && r < 6 && c >= 0 && c < 7 && board[r][c] === player) {
+                        count++;
+                        r += dr;
+                        c += dc;
+                    }
+                }
+                
+                if (count >= 4) return player;
+            }
+
+            return null;
+        }
+
+        function leaveGame() {
+            if (gameRef) {
+                gameRef.off();
+            }
+            currentGameCode = null;
+            playerNumber = null;
+            gameRef = null;
+            
+            document.querySelector('.game-screen').classList.remove('active');
+            document.querySelector('.setup-screen').classList.add('active');
+            document.getElementById('joinInput').style.display = 'none';
+            document.getElementById('gameCodeInput').value = '';
+        }
+
+        function showError(msg) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
